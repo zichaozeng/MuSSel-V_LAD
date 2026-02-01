@@ -1,0 +1,162 @@
+"""Hawkins Long Corridor dataset loader for visual place recognition.
+
+This module provides a PyTorch dataset class for the Hawkins corridor dataset,
+which consists of images captured in a long, narrow corridor environment.
+
+The dataset features:
+- Database images (reference set)
+- Query images with viewpoint variations
+- Ground truth pose information
+- Challenging scenarios with repetitive structures and limited visual features
+
+Usage:
+    dataset = Hawkins(args, datasets_folder='./workspace', split='train')
+"""
+
+# %%
+import os
+import sys
+from pathlib import Path
+
+# Set the './../' from the script folder
+dir_name = None
+try:
+    dir_name = os.path.dirname(os.path.realpath(__file__))
+except NameError:
+    print('WARN: __file__ not found, trying local')
+    dir_name = os.path.abspath('')
+lib_path = os.path.realpath(f'{Path(dir_name).parent}')
+
+# Add library path to PYTHONPATH
+if lib_path not in sys.path:
+    print(f'Adding library path: {lib_path} to PYTHONPATH')
+    sys.path.append(lib_path)
+else:
+    print(f'Library path {lib_path} already in PYTHONPATH')
+
+
+# %%
+import pandas as pd
+import os
+import numpy as np
+import cv2
+import torch
+import torch.utils.data 
+from typing import List, Union
+from natsort import natsorted
+from configs import prog_args
+from scipy.spatial.transform import Rotation
+from scipy.spatial.distance import euclidean
+
+from torch.utils.data import DataLoader
+
+import os
+import torch
+import faiss
+import numpy as np
+from PIL import Image
+import torchvision.transforms as T
+from sklearn.neighbors import NearestNeighbors
+
+from utilities import CustomDataset
+
+def path_to_pil_img(path):
+    return Image.open(path).convert("RGB")
+
+base_transform = T.Compose([
+    T.ToTensor(),
+    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+mixVPR_transform = T.Compose([
+    T.ToTensor(),
+    T.Normalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]),
+    T.Resize((320,320))
+])
+
+class Hawkins(CustomDataset):
+    """
+    PyTorch dataset class for Hawkins Long Corridor environment.
+    
+    This dataset captures images from a long corridor with repetitive structures,
+    presenting challenges for place recognition due to perceptual aliasing and
+    limited distinctive features.
+    
+    Args:
+        args: Configuration arguments.
+        datasets_folder (str): Root directory containing dataset folders.
+        dataset_name (str): Dataset identifier (default: 'hawkins_long_corridor').
+        split (str): Dataset split ('train', 'val', 'test').
+        use_ang_positives (bool): Whether to use angular constraints for positives.
+        dist_thresh (float): Distance threshold for positive matches (metres).
+        ang_thresh (float): Angular threshold for positive matches (degrees).
+        use_mixVPR (bool): Whether to use MixVPR-specific transforms.
+        use_SAM (bool): Whether to use SAM-specific preprocessing.
+        
+    Attributes:
+        db_abs_paths (list): Absolute paths to database images.
+        q_abs_paths (list): Absolute paths to query images.
+        database_num (int): Number of database images.
+        queries_num (int): Number of query images.
+        gt_positives: Ground truth pose information.
+    """
+    def __init__(self,args,datasets_folder,dataset_name="hawkins_long_corridor",split="train",use_ang_positives=False,dist_thresh = 8,ang_thresh=20,use_mixVPR=False,use_SAM=False):
+        super().__init__()
+
+        self.dataset_name = dataset_name
+        self.datasets_folder = datasets_folder
+        self.split = split
+        self.use_mixVPR = use_mixVPR
+        self.use_SAM = use_SAM
+        self.db_paths = natsorted(os.listdir(os.path.join(self.datasets_folder,'hawkins',"db_images")))
+        self.q_paths = natsorted(os.listdir(os.path.join(self.datasets_folder,'hawkins',"q_images")))
+
+        self.db_abs_paths = []
+        self.q_abs_paths = []
+
+        for p in self.db_paths:
+            self.db_abs_paths.append(os.path.join(self.datasets_folder,'hawkins',"db_images",p))
+
+        for q in self.q_paths:
+            self.q_abs_paths.append(os.path.join(self.datasets_folder,'hawkins',"q_images",q))
+
+        self.db_num = len(self.db_abs_paths)
+        self.q_num = len(self.q_abs_paths)
+        
+        self.database_num = self.db_num
+        self.queries_num = self.q_num
+
+        self.gt_positives = np.load(os.path.join(self.datasets_folder,'hawkins',"pose_topic_list.npy"),allow_pickle=True) #returns dictionary of gardens dataset
+        
+        if self.dataset_name=='hawkins':
+            # print('hawkins')
+            self.db_gt_arr = self.gt_positives[:76,:2]
+            self.q_gt_arr = self.gt_positives[76:151,:2]
+        elif self.dataset_name=='hawkins_long_corridor':
+            # print('hawkins long corridor')
+            self.db_gt_arr = self.gt_positives[:127,:2]
+            self.q_gt_arr = self.gt_positives[127:245,:2]
+        knn = NearestNeighbors(n_jobs=-1)
+        knn.fit(self.db_gt_arr)
+        self.dist_thresh = dist_thresh
+        self.dist,self.soft_positives_per_query = knn.radius_neighbors(self.q_gt_arr,
+                                                            radius=self.dist_thresh,
+                                                            return_distance=True)            
+
+
+        self.images_paths = list(self.db_abs_paths) + list(self.q_abs_paths)
+
+
+    def __getitem__(self, index):
+        img = Image.open(self.images_paths[index])
+
+        if self.use_mixVPR:
+            img = mixVPR_transform(img)
+        elif self.use_SAM:
+            img = cv2.imread(self.images_paths[index])
+            img = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+        else:
+            img = base_transform(img)
+
+        return img, index
