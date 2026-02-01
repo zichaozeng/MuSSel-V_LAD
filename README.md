@@ -1,14 +1,16 @@
 # **(MuS)Sel-V: Dilated Superpixel Aggregation for Visual Place Recognition**
 
-[![Static Badge](https://img.shields.io/badge/Home_Page-purple)](https://zichaozeng.github.io/MuSSel-V) &nbsp;
-[![Static Badge](https://img.shields.io/badge/-RA--L-blue)]([![Static Badge](https://img.shields.io/badge/Home_Page-purple)](https://zichaozeng.github.io/MuSSel-V) &nbsp;
 
-# **Abstract**
+
+[![Static Badge](https://img.shields.io/badge/Home_Page-purple)](https://zichaozeng.github.io/MuSSel-V) &nbsp;
+[![Static Badge](https://img.shields.io/badge/-RA--L-blue)](https://ieeexplore.ieee.org/document/11302767) &nbsp;
+
+# ⭐ **Abstract**
 Visual Place Recognition (VPR) is a fundamental task in robotics and computer vision, enabling systems to identify locations seen in the past using visual information. Previous state-of-the-art approaches focus on encoding and retrieving semantically meaningful supersegment representations of images to significantly enhance recognition recall rates. However, we find that they struggle to cope with significant variations in viewpoint and scale, as well as scenes with sparse or limited information. Furthermore, these semantic-driven supersegment representations often exclude semantically meaningless yet valuable pixel information.  In this paper, we propose dilated superpixels to aggregate local descriptors, named **Sel-V**. This visually compact and complete representation substantially improves the robustness of segment-based methods and enhances the recognition of images with large variations. To further improve robustness, we introduce a multi-scale superpixel adaptive method - **MuSSel-V**, designed to accommodate a wide range of tasks across different domains. Extensive experiments conducted on benchmark datasets demonstrate that our method significantly outperforms existing approaches in recall, in diverse and complex environments characterised by dynamic changes or minimal scene information. Moreover, compared to existing supersegment representations, our approach achieves a notable advantage in processing speed. 
 
 **Note: *Currently, we only provide the standard Sel-V and MuSSel-V with pre-trained DINOv2 for feature extraction and SEEDS or SLIC for segmentation. The complete code will be released in the future.***
 
-# **Dataset**
+# 🏙️ **Dataset**
 ## **Dataset Downloading**
 For quick testing, we recommend downloading 17Places, VPAir, Laurel, and Hawkins from [AnyLoc](https://github.com/AnyLoc/AnyLoc/issues/34#issuecomment-2162492086). 
 
@@ -37,7 +39,7 @@ wokspace/
 ├── results/
 ```
 
-# Environment Setup
+# 🛠 Environment Setup
 We implement our experiments using **Python 3.10** and **PyTorch 2.4.1+cu121**.
 
 To set up the environment, run the following commands:
@@ -46,7 +48,7 @@ conda env create -f mussel.yaml
 conda activate mussel
 conda install pytorch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 pytorch-cuda=12.1 -c pytorch -c nvidia
 ```
-# Inference
+# 🔥 Inference
 ## Feature Extraction 
 To perform feature extraction using **laurel** as an example, run:
 ```bash
@@ -148,8 +150,25 @@ pip install opencv-contrib-python
 **After reinstalling, try running** `image_segmentation.py` **again**. If the error persists, make sure to check your Python environment and that the correct package version is installed.
 
 
-## Acknowledgements
+# ❤️ Acknowledgements
 We borrow some of the code from **AnyLoc** and **SegVLAD**. We thank the authors of AnyLoc and SegVLAD for making their code publicly available.
 
+
+# 📜 Citation
+
+Should our work offer you even the slightest inspiration, we would be most honoured if you chose to cite our paper.
+
+```bibtex
+@ARTICLE{zeng2026dailated,
+        author={Zeng, Zichao and Goo, June Moh and Boehm, Jan},
+        journal={IEEE Robotics and Automation Letters}, 
+        title={Dilated Superpixel Aggregation for Visual Place Recognition}, 
+        year={2026},
+        volume={11},
+        number={2},
+        pages={2002-2009},
+        doi={10.1109/LRA.2025.3645658}
+}
+```
 
 **Note: *The code is still under development. More alternative methods will be released soon. Stay tuned!***
